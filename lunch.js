@@ -3,8 +3,9 @@ var execSync = require('exec-sync');
 var async = require('async');
 var excelParser = require('excel-parser');
 var moment = require('moment');
+var querystring = require("querystring");
 
-var xlsfile = __dirname+'/lunch.xls';
+var xlsfile = __dirname+'/lunch.xlsx';
 var ment1file = __dirname+'/ment1.mp3';
 var ment2file = __dirname+'/ment2.mp3';
 
@@ -14,7 +15,7 @@ tasks.push(function(next) {
 	execSync('rm -f '+xlsfile);	
 	execSync('rm -f '+ment1file);	
 	execSync('rm -f '+ment2file);	
-	exec('wget -q -U Mozila -O '+xlsfile+' http://hs.eipark.co.kr/main/food_menu_excel.aspx', function(err, stdout, stderr) {
+	exec('wget -q -U Mozila -O '+xlsfile+' http://image.eiparkclub.com/Storage/temp/258_foodmenu.xlsx', function(err, stdout, stderr) {
 		if (err) {
 			console.log(err);
 			return;
@@ -37,10 +38,13 @@ tasks.push(function(next) {
 			return;
 		}
 		worksheets.forEach(function(sheet) {
-			if (sheet.name=='식단표') {
+			console.log('sheet.id:'+sheet.id);
+			console.log('sheet.name:'+sheet.name);
+			//if (!sheetId) sheetId = sheet.id;
+			//if (sheet.name=='식단표') {
 				sheetId = sheet.id;
-				return;
-			}
+			//	return;
+			//}
 		});
 		next();
 	});
@@ -79,20 +83,18 @@ async.series(tasks, function() {
 	} else {
 		ment2.push('퓨전은 없습니다.');
 	}
-	//console.log(klunch);
-	//console.log(flunch);
 	console.log(ment.join(' '));
 	console.log(ment2.join(' '));
-	var ret1 = execSync('wget -q -U Mozilla -O '+ment1file+' "http://translate.google.com/translate_tts?ie=UTF-8&tl=ko&q='+ment.join(' ')+'"');
+	var ret1 = execSync('wget -q -U Mozilla -O '+ment1file+' "http://translate.google.com/translate_tts?ie=UTF-8&tl=ko&q='+querystring.escape(ment.join(' '))+'"');
 	if (ret1) {
 		console.log(ret1);
 	}
-	var ret2 = execSync('wget -q -U Mozilla -O '+ment2file+' "http://translate.google.com/translate_tts?ie=UTF-8&tl=ko&q='+ment2.join(' ')+'"');
+	var ret2 = execSync('wget -q -U Mozilla -O '+ment2file+' "http://translate.google.com/translate_tts?ie=UTF-8&tl=ko&q='+querystring.escape(ment2.join(' '))+'"');
 
 	if (ret2) {
 		console.log(ret2);
 	}
-	exec('mpg321 -q '+ment1file+' '+ment2file, function(err, stdout, stderr) {
+	exec('mplayer -af volume=10:scaletempo=scale=1.0:speed=pitch intro.wav '+ment1file+' '+ment2file, function(err, stdout, stderr) {
 		console.log(err);
 		console.log('complete');
 	});
@@ -110,6 +112,7 @@ function parseLunch(records) {
 		}
 		if (!step) {
 			items.forEach(function(item, itemidx) {
+				console.log(item);
 				var matches = item.match(/([0-9]+)월[ ]*([0-9]+)일/);
 				if (matches) {
 					var m = parseInt(matches[1]);
